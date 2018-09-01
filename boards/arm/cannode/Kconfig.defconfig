@@ -1,0 +1,20 @@
+# Kconfig - CAN Node board configuration
+#
+# Copyright (c) 2018 Josef Raschen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+if BOARD_CANNODE
+
+config BOARD
+	default "cannode"
+
+if UART_CONSOLE
+
+config UART_STM32_PORT_1
+	default y
+
+endif # UART_CONSOLE
+
+endif # BOARD_CANNODE

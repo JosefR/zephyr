@@ -1,0 +1,10 @@
+# Kconfig - CAN Node board configuration
+#
+# Copyright (c) 2018 Josef Raschen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config BOARD_CANNODE
+	bool "CAN Node Board"
+	depends on SOC_STM32F072XB
