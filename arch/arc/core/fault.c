@@ -19,6 +19,7 @@
 #include <kernel_structs.h>
 #include <misc/printk.h>
 #include <exc_handle.h>
+#include <logging/log_ctrl.h>
 
 #ifdef CONFIG_USERSPACE
 Z_EXC_DECLARE(z_arch_user_string_nlen);
@@ -33,14 +34,16 @@ static const struct z_exc_handle exceptions[] = {
  *
  * This routine is called when fatal error conditions are detected by hardware
  * and is responsible only for reporting the error. Once reported, it then
- * invokes the user provided routine _SysFatalErrorHandler() which is
+ * invokes the user provided routine z_SysFatalErrorHandler() which is
  * responsible for implementing the error handling policy.
  */
 void _Fault(NANO_ESF *esf)
 {
 	u32_t vector, code, parameter;
-	u32_t exc_addr = _arc_v2_aux_reg_read(_ARC_V2_EFA);
-	u32_t ecr = _arc_v2_aux_reg_read(_ARC_V2_ECR);
+	u32_t exc_addr = z_arc_v2_aux_reg_read(_ARC_V2_EFA);
+	u32_t ecr = z_arc_v2_aux_reg_read(_ARC_V2_ECR);
+
+	LOG_PANIC();
 
 #ifdef CONFIG_USERSPACE
 	for (int i = 0; i < ARRAY_SIZE(exceptions); i++) {
@@ -61,7 +64,7 @@ void _Fault(NANO_ESF *esf)
 
 	/* exception raised by kernel */
 	if (vector == 0x9 && parameter == _TRAP_S_CALL_RUNTIME_EXCEPT) {
-		_NanoFatalErrorHandler(esf->r0, esf);
+		z_NanoFatalErrorHandler(esf->r0, esf);
 		return;
 	}
 
@@ -73,9 +76,9 @@ void _Fault(NANO_ESF *esf)
 	 * check violation
 	 */
 	if (vector == 6 && parameter == 2) {
-		_NanoFatalErrorHandler(_NANO_ERR_STACK_CHK_FAIL, esf);
+		z_NanoFatalErrorHandler(_NANO_ERR_STACK_CHK_FAIL, esf);
 		return;
 	}
 #endif
-	_NanoFatalErrorHandler(_NANO_ERR_HW_EXCEPTION, esf);
+	z_NanoFatalErrorHandler(_NANO_ERR_HW_EXCEPTION, esf);
 }

@@ -10,6 +10,7 @@
 #include <kernel_structs.h>
 #include <misc/printk.h>
 #include <inttypes.h>
+#include <logging/log_ctrl.h>
 #include "posix_soc_if.h"
 
 const NANO_ESF _default_esf = {
@@ -31,9 +32,11 @@ const NANO_ESF _default_esf = {
  *
  * @return This function does not return.
  */
-FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
+FUNC_NORETURN void z_NanoFatalErrorHandler(unsigned int reason,
 		const NANO_ESF *esf)
 {
+	LOG_PANIC();
+
 #ifdef CONFIG_PRINTK
 	switch (reason) {
 	case _NANO_ERR_CPU_EXCEPTION:
@@ -69,9 +72,9 @@ FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
 
 #endif
 
-	void _SysFatalErrorHandler(unsigned int reason,
+	void z_SysFatalErrorHandler(unsigned int reason,
 			const NANO_ESF *pEsf);
-	_SysFatalErrorHandler(reason, esf);
+	z_SysFatalErrorHandler(reason, esf);
 }
 
 
@@ -95,7 +98,7 @@ FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
  *
  * @return N/A
  */
-FUNC_NORETURN __weak void _SysFatalErrorHandler(unsigned int reason,
+FUNC_NORETURN __weak void z_SysFatalErrorHandler(unsigned int reason,
 		const NANO_ESF *pEsf)
 {
 	ARG_UNUSED(pEsf);
@@ -108,7 +111,7 @@ FUNC_NORETURN __weak void _SysFatalErrorHandler(unsigned int reason,
 	if (reason == _NANO_ERR_KERNEL_PANIC) {
 		goto hang_system;
 	}
-	if (k_is_in_isr() || _is_thread_essential()) {
+	if (k_is_in_isr() || z_is_thread_essential()) {
 		posix_print_error_and_exit(
 			"Fatal fault in %s! Stopping...\n",
 			k_is_in_isr() ? "ISR" : "essential thread");
@@ -119,6 +122,6 @@ FUNC_NORETURN __weak void _SysFatalErrorHandler(unsigned int reason,
 hang_system:
 
 	posix_print_error_and_exit(
-		"Stopped in _SysFatalErrorHandler()\n");
+		"Stopped in z_SysFatalErrorHandler()\n");
 	CODE_UNREACHABLE;
 }

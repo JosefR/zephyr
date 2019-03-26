@@ -17,9 +17,9 @@ struct fifo_msg {
 #define FIFO_MSG_VALUE 0xdeadbeef
 
 /* verify k_poll() without waiting */
-static __kernel struct k_sem no_wait_sem;
-static __kernel struct k_fifo no_wait_fifo;
-static __kernel struct k_poll_signal no_wait_signal;
+static struct k_sem no_wait_sem;
+static struct k_fifo no_wait_fifo;
+static struct k_poll_signal no_wait_signal;
 
 /**
  * @brief Test cases to verify poll
@@ -38,7 +38,7 @@ static __kernel struct k_poll_signal no_wait_signal;
  * @ingroup kernel_poll_tests
  *
  * @see K_POLL_EVENT_INITIALIZER(), k_poll_signal_init(),
- * k_poll_signal(), k_poll_signal_check()
+ * k_poll_signal_raise(), k_poll_signal_check()
  */
 void test_poll_no_wait(void)
 {
@@ -67,7 +67,7 @@ void test_poll_no_wait(void)
 
 	/* test polling events that are already ready */
 	zassert_false(k_fifo_alloc_put(&no_wait_fifo, &msg), NULL);
-	k_poll_signal(&no_wait_signal, SIGNAL_RESULT);
+	k_poll_signal_raise(&no_wait_signal, SIGNAL_RESULT);
 
 	zassert_equal(k_poll(events, ARRAY_SIZE(events), 0), 0, "");
 
@@ -108,12 +108,12 @@ void test_poll_no_wait(void)
 
 static K_SEM_DEFINE(wait_sem, 0, 1);
 static K_FIFO_DEFINE(wait_fifo);
-static __kernel struct k_poll_signal wait_signal =
+static struct k_poll_signal wait_signal =
 	K_POLL_SIGNAL_INITIALIZER(wait_signal);
 
 struct fifo_msg wait_msg = { NULL, FIFO_MSG_VALUE };
 
-static __kernel struct k_thread poll_wait_helper_thread;
+static struct k_thread poll_wait_helper_thread;
 static K_THREAD_STACK_DEFINE(poll_wait_helper_stack, KB(1));
 
 #define TAG_0 10
@@ -147,7 +147,7 @@ static void poll_wait_helper(void *use_fifo, void *p2, void *p3)
 		k_fifo_alloc_put(&wait_fifo, &wait_msg);
 	}
 
-	k_poll_signal(&wait_signal, SIGNAL_RESULT);
+	k_poll_signal_raise(&wait_signal, SIGNAL_RESULT);
 }
 
 /**
@@ -334,10 +334,10 @@ void test_poll_wait(void)
 
 /* verify k_poll() that waits on object which gets cancellation */
 
-static __kernel struct k_fifo cancel_fifo;
-static __kernel struct k_fifo non_cancel_fifo;
+static struct k_fifo cancel_fifo;
+static struct k_fifo non_cancel_fifo;
 
-static __kernel struct k_thread poll_cancel_helper_thread;
+static struct k_thread poll_cancel_helper_thread;
 static K_THREAD_STACK_DEFINE(poll_cancel_helper_stack, 768);
 
 static void poll_cancel_helper(void *p1, void *p2, void *p3)
@@ -428,7 +428,7 @@ void test_poll_cancel_main_high_prio(void)
 /* verify multiple pollers */
 static K_SEM_DEFINE(multi_sem, 0, 1);
 
-static __kernel struct k_thread multi_thread_lowprio;
+static struct k_thread multi_thread_lowprio;
 static K_THREAD_STACK_DEFINE(multi_stack_lowprio, KB(1));
 
 static void multi_lowprio(void *p1, void *p2, void *p3)
@@ -448,7 +448,7 @@ static void multi_lowprio(void *p1, void *p2, void *p3)
 
 static K_SEM_DEFINE(multi_reply, 0, 1);
 
-static __kernel struct k_thread multi_thread;
+static struct k_thread multi_thread;
 static K_THREAD_STACK_DEFINE(multi_stack, KB(1));
 
 static void multi(void *p1, void *p2, void *p3)
@@ -525,9 +525,9 @@ void test_poll_multi(void)
 	k_sleep(250);
 }
 
-static __kernel struct k_thread signal_thread;
+static struct k_thread signal_thread;
 static K_THREAD_STACK_DEFINE(signal_stack, KB(1));
-static __kernel struct k_poll_signal signal;
+static struct k_poll_signal signal;
 
 static void threadstate(void *p1, void *p2, void *p3)
 {
@@ -537,7 +537,7 @@ static void threadstate(void *p1, void *p2, void *p3)
 	/* Update polling thread state explicitly to improve code coverage */
 	k_thread_suspend(p1);
 	/* Enable polling thread by signalling */
-	k_poll_signal(&signal, SIGNAL_RESULT);
+	k_poll_signal_raise(&signal, SIGNAL_RESULT);
 	k_thread_resume(p1);
 }
 
@@ -551,7 +551,7 @@ static void threadstate(void *p1, void *p2, void *p3)
  * @ingroup kernel_poll_tests
  *
  * @see K_POLL_EVENT_INITIALIZER(), k_poll(), k_poll_signal_init(),
- * k_poll_signal_check(), k_poll_signal()
+ * k_poll_signal_check(), k_poll_signal_raise()
  */
 void test_poll_threadstate(void)
 {
@@ -596,6 +596,5 @@ void test_poll_grant_access(void)
 			      &wait_signal, &poll_wait_helper_thread,
 			      &poll_wait_helper_stack, &multi_sem,
 			      &multi_reply, &multi_thread, &multi_stack,
-			      &multi_thread_lowprio, &multi_stack_lowprio,
-			      NULL);
+			      &multi_thread_lowprio, &multi_stack_lowprio);
 }

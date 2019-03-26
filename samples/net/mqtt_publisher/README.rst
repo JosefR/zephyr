@@ -17,7 +17,7 @@ See the `MQTT V3.1.1 spec`_ for more information.
 .. _MQTT V3.1.1 spec: http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html
 
 The source code of this sample application can be found at:
-:file:`samples/net/mqtt_publisher`.
+:zephyr_file:`samples/net/mqtt_publisher`.
 
 Requirements
 ************
@@ -94,7 +94,7 @@ following macros to specify those values:
 	#define BLUEMIX_FORMAT		"json"
 
 On your Linux host computer, open a terminal window, locate the source code
-of this sample application (i.e. :file:`samples/net/mqtt_publisher`) and type:
+of this sample application (i.e. :zephyr_file:`samples/net/mqtt_publisher`) and type:
 
 .. zephyr-app-commands::
    :zephyr-app: samples/net/mqtt_publisher
@@ -113,6 +113,62 @@ Open another terminal window and type:
 .. code-block:: console
 
 	$ mosquitto_sub -t sensors
+
+TLS offloading
+==============
+
+For boards that support this feature, TLS offloading is used by
+specifying ``-DOVERLAY_CONFIG=overlay-tls-offload.conf`` when running cmake.
+
+Using this overlay enables TLS without bringing in mbedtls.
+
+SOCKS5 proxy support
+====================
+
+It is also possible to connect to the MQTT broker through a SOCKS5 proxy.
+To enable it, use ``-DOVERLAY_CONFIG=overlay-socks5.conf`` when running cmake.
+
+By default, to make the testing easier, the proxy is expected to run on the
+same host as the MQTT broker.
+
+To start a proxy server, ``ssh`` can be used.
+Use the following command to run it on your host with the default port:
+
+.. code-block: console
+
+	$ ssh -N -D 0.0.0.0:1080 localhost
+
+To connect to a proxy server that is not running under the same IP as the MQTT
+broker or uses a different port number, modify the following values:
+
+.. code-block:: c
+
+	#define SOCKS5_PROXY_ADDR    SERVER_ADDR
+	#define SOCKS5_PROXY_PORT    1080
+
+
+Running on cc3220sf_launchxl
+============================
+
+Offloading on cc3220sf_launchxl also provides DHCP services, so the sample
+uses dynamic IP addresses on this board.
+
+By default, the sample is set up to connect to the broker at the address
+specified by SERVER_ADDR in config.h. If the broker is secured using TLS, users
+should enable TLS offloading, upload the server's certificate
+authority file in DER format to the device filesystem using TI Uniflash,
+and name it "ca_cert.der".
+
+In addition, TLS_SNI_HOSTNAME in main.c should be defined to match the
+Common Name (CN) in the certificate file in order for the TLS domain
+name verification to succeed.
+
+See the note on Provisioning and Fast Connect in :ref:`cc3220sf_launchxl`.
+
+The Secure Socket Offload section has information on programming the
+certificate to flash.
+
+Proceed to test as above.
 
 Sample output
 =============

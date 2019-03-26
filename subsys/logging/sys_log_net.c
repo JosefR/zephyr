@@ -63,34 +63,24 @@ static void fill_header(struct net_buf *buf)
 
 static void syslog_hook_net(const char *fmt, ...)
 {
-	struct net_pkt *pkt;
-	struct net_buf *frag;
-	u8_t *ptr;
+	struct net_buf *buf;
 	va_list vargs;
+	u8_t *ptr;
 	int ret;
 
-	pkt = net_pkt_get_tx(ctx, K_NO_WAIT);
-	if (!pkt) {
+	buf = net_buf_alloc(&syslog_tx_bufs, K_NO_WAIT);
+	if (!buf) {
 		return;
 	}
 
-	frag = net_pkt_get_data(ctx, K_NO_WAIT);
-	if (!frag) {
-		net_pkt_unref(pkt);
-		return;
-	}
-
-	net_pkt_frag_add(pkt, frag);
-
-	fill_header(frag);
+	fill_header(buf);
 
 	va_start(vargs, fmt);
 
-	ptr = net_buf_tail(frag);
+	ptr = net_buf_tail(buf);
 
-	ret = vsnprintk(ptr, (net_buf_tailroom(frag) - 1), fmt, vargs);
+	ret = vsnprintk(ptr, (net_buf_tailroom(buf) - 1), fmt, vargs);
 	if (ret < 0) {
-		net_pkt_unref(pkt);
 		return;
 	}
 
@@ -101,19 +91,19 @@ static void syslog_hook_net(const char *fmt, ...)
 		ret--;
 	}
 
-	net_buf_add(frag, ret);
+	net_buf_add(buf, ret);
 
 #if DEBUG_PRINTING
 	{
 		static u32_t count;
 
-		printk("%d:%s", ++count, frag->data);
+		printk("%d:%s", ++count, buf->data);
 	}
 #endif
-	ret = net_context_send(pkt, NULL, K_NO_WAIT, NULL, NULL);
-	if (ret < 0) {
-		net_pkt_unref(pkt);
-	}
+	net_context_send_new(ctx, buf->data, buf->len,
+			     NULL, K_NO_WAIT, NULL, NULL);
+
+	net_buf_unref(buf);
 }
 
 void syslog_net_hook_install(void)
@@ -140,7 +130,7 @@ void syslog_net_hook_install(void)
 	ret = net_ipaddr_parse(CONFIG_SYS_LOG_BACKEND_NET_SERVER,
 			       sizeof(CONFIG_SYS_LOG_BACKEND_NET_SERVER) - 1,
 			       &server_addr);
-	if (!ret) {
+	if (ret == 0) {
 		SYS_LOG_ERR("Cannot configure syslog server address");
 		return;
 	}
@@ -169,7 +159,7 @@ void syslog_net_hook_install(void)
 	}
 
 #if CONFIG_NET_HOSTNAME_ENABLE
-	memcpy(hostname, net_hostname_get(), MAX_HOSTNAME_LEN);
+	(void)memcpy(hostname, net_hostname_get(), MAX_HOSTNAME_LEN);
 #else /* CONFIG_NET_HOSTNAME_ENABLE */
 	if (server_addr.sa_family == AF_INET6) {
 #if defined(CONFIG_NET_IPV6)

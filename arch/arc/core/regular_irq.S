@@ -104,7 +104,7 @@ SECTION_FUNC(TEXT, _rirq_exit)
 	st	r0, [r1]
 
 #ifdef CONFIG_STACK_SENTINEL
-	bl _check_stack_sentinel
+	bl z_check_stack_sentinel
 #endif
 
 #ifdef CONFIG_PREEMPT_ENABLED
@@ -199,6 +199,9 @@ _rirq_return_from_coop:
 	/* update return value on stack */
 	ld_s r0, [r2, _thread_offset_to_return_value]
 	st_s r0, [sp, ___isf_t_r0_OFFSET]
+
+	/* reset zero-overhead loops */
+	st 0, [sp, ___isf_t_lp_end_OFFSET]
 
 	/*
 	 * r13 is part of both the callee and caller-saved register sets because

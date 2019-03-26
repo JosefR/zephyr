@@ -17,8 +17,8 @@
  * symbols" in the offsets.o module.
  */
 
-#ifndef _kernel_arch_func__h_
-#define _kernel_arch_func__h_
+#ifndef ZEPHYR_ARCH_ARC_INCLUDE_KERNEL_ARCH_FUNC_H_
+#define ZEPHYR_ARCH_ARC_INCLUDE_KERNEL_ARCH_FUNC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +37,7 @@ static ALWAYS_INLINE void kernel_arch_init(void)
 }
 
 static ALWAYS_INLINE void
-_set_thread_return_value(struct k_thread *thread, unsigned int value)
+z_set_thread_return_value(struct k_thread *thread, unsigned int value)
 {
 	thread->arch.return_value = value;
 }
@@ -51,20 +51,15 @@ _set_thread_return_value(struct k_thread *thread, unsigned int value)
  */
 static ALWAYS_INLINE int _INTERRUPT_CAUSE(void)
 {
-	u32_t irq_num = _arc_v2_aux_reg_read(_ARC_V2_ICAUSE);
+	u32_t irq_num = z_arc_v2_aux_reg_read(_ARC_V2_ICAUSE);
 
 	return irq_num;
 }
 
-#define _is_in_isr	_arc_v2_irq_unit_is_in_isr
+#define z_is_in_isr	z_arc_v2_irq_unit_is_in_isr
 
 extern void _thread_entry_wrapper(void);
 extern void _user_thread_entry_wrapper(void);
-
-static inline void _IntLibInit(void)
-{
-	/* nothing needed, here because the kernel requires it */
-}
 
 extern void _arc_userspace_enter(k_thread_entry_t user_entry, void *p1,
 		 void *p2, void *p3, u32_t stack, u32_t size);
@@ -75,4 +70,4 @@ extern void _arc_userspace_enter(k_thread_entry_t user_entry, void *p1,
 }
 #endif
 
-#endif /* _kernel_arch_func__h_ */
+#endif /* ZEPHYR_ARCH_ARC_INCLUDE_KERNEL_ARCH_FUNC_H_ */

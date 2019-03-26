@@ -196,6 +196,19 @@ void test_timer_expirefn_null(void)
 	k_timer_stop(&timer);
 }
 
+/* Wait for the next expiration of an OS timer tick, to synchronize
+ * test start
+ */
+static void tick_sync(void)
+{
+	static struct k_timer sync_timer;
+
+	k_timer_init(&sync_timer, NULL, NULL);
+	k_timer_start(&sync_timer, 0, 1);
+	k_timer_status_sync(&sync_timer);
+	k_timer_stop(&sync_timer);
+}
+
 /**
  * @brief Test to check timer periodicity
  *
@@ -216,6 +229,12 @@ void test_timer_expirefn_null(void)
 void test_timer_periodicity(void)
 {
 	s64_t delta;
+
+	/* Start at a tick boundary, otherwise a tick expiring between
+	 * the unlocked (and unlockable) start/uptime/sync steps below
+	 * will throw off the math.
+	 */
+	tick_sync();
 
 	init_timer_data();
 	/** TESTPOINT: set duration 0 */
@@ -465,6 +484,33 @@ void test_timer_user_data(void)
 	}
 }
 
+/**
+ * @brief Test accuracy of k_timer_remaining_get()
+ *
+ * Validate countdown of time to expiration
+ *
+ * Starts a timer, busy-waits for half the DURATION, then checks the
+ * remaining time to expiration and stops the timer. The remaining time
+ * should reflect the passage of at least the busy-wait interval.
+ *
+ * @ingroup kernel_timer_tests
+ *
+ * @see k_timer_init(), k_timer_start(), k_timer_stop(),
+ * k_timer_remaining_get()
+ */
+
+void test_timer_remaining_get(void)
+{
+	u32_t remaining;
+
+	init_timer_data();
+	k_timer_init(&timer, NULL, NULL);
+	k_timer_start(&timer, DURATION, 0);
+	busy_wait_ms(DURATION / 2);
+	remaining = k_timer_remaining_get(&timer);
+	k_timer_stop(&timer);
+	zassert_true(remaining <= (DURATION / 2), NULL);
+}
 
 void test_main(void)
 {
@@ -477,6 +523,7 @@ void test_main(void)
 			 ztest_unit_test(test_timer_status_get_anytime),
 			 ztest_unit_test(test_timer_status_sync),
 			 ztest_unit_test(test_timer_k_define),
-			 ztest_unit_test(test_timer_user_data));
+			 ztest_unit_test(test_timer_user_data),
+			 ztest_unit_test(test_timer_remaining_get));
 	ztest_run_test_suite(timer_api);
 }

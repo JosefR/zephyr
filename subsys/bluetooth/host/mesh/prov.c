@@ -19,6 +19,7 @@
 #include <bluetooth/uuid.h>
 
 #define BT_DBG_ENABLED IS_ENABLED(CONFIG_BT_MESH_DEBUG_PROV)
+#define LOG_MODULE_NAME bt_mesh_prov
 #include "common/log.h"
 
 #include "../ecc.h"
@@ -215,7 +216,7 @@ static void free_segments(void)
 
 		link.tx.buf[i] = NULL;
 		/* Mark as canceled */
-		BT_MESH_ADV(buf)->busy = 0;
+		BT_MESH_ADV(buf)->busy = 0U;
 		net_buf_unref(buf);
 	}
 }
@@ -238,7 +239,7 @@ static void reset_link(void)
 	}
 
 	/* Clear everything except the retransmit delayed work config */
-	memset(&link, 0, offsetof(struct prov_link, tx.retransmit));
+	(void)memset(&link, 0, offsetof(struct prov_link, tx.retransmit));
 
 	link.rx.prev_id = XACT_NVAL;
 
@@ -407,13 +408,13 @@ static int prov_send_adv(struct net_buf_simple *msg)
 
 	link.tx.buf[0] = start;
 
-	seg_len = min(msg->len, START_PAYLOAD_MAX);
+	seg_len = MIN(msg->len, START_PAYLOAD_MAX);
 	BT_DBG("seg 0 len %u: %s", seg_len, bt_hex(msg->data, seg_len));
 	net_buf_add_mem(start, msg->data, seg_len);
 	net_buf_simple_pull(msg, seg_len);
 
 	buf = start;
-	for (seg_id = 1; msg->len > 0; seg_id++) {
+	for (seg_id = 1U; msg->len > 0; seg_id++) {
 		if (seg_id >= ARRAY_SIZE(link.tx.buf)) {
 			BT_ERR("Too big message");
 			free_segments();
@@ -428,7 +429,7 @@ static int prov_send_adv(struct net_buf_simple *msg)
 
 		link.tx.buf[seg_id] = buf;
 
-		seg_len = min(msg->len, CONT_PAYLOAD_MAX);
+		seg_len = MIN(msg->len, CONT_PAYLOAD_MAX);
 
 		BT_DBG("seg_id %u len %u: %s", seg_id, seg_len,
 		       bt_hex(msg->data, seg_len));
@@ -603,7 +604,7 @@ static int prov_auth(u8_t method, u8_t action, u8_t size)
 			return -EINVAL;
 		}
 
-		memset(link.auth, 0, sizeof(link.auth));
+		(void)memset(link.auth, 0, sizeof(link.auth));
 		return 0;
 	case AUTH_METHOD_STATIC:
 		if (action || size) {
@@ -612,7 +613,8 @@ static int prov_auth(u8_t method, u8_t action, u8_t size)
 
 		memcpy(link.auth + 16 - prov->static_val_len,
 		       prov->static_val, prov->static_val_len);
-		memset(link.auth, 0, sizeof(link.auth) - prov->static_val_len);
+		(void)memset(link.auth, 0,
+			     sizeof(link.auth) - prov->static_val_len);
 		return 0;
 
 	case AUTH_METHOD_OUTPUT:
@@ -636,7 +638,7 @@ static int prov_auth(u8_t method, u8_t action, u8_t size)
 			bt_rand(str, size);
 
 			/* Normalize to '0' .. '9' & 'A' .. 'Z' */
-			for (i = 0; i < size; i++) {
+			for (i = 0U; i < size; i++) {
 				str[i] %= 36;
 				if (str[i] < 10) {
 					str[i] += '0';
@@ -647,7 +649,8 @@ static int prov_auth(u8_t method, u8_t action, u8_t size)
 			str[size] = '\0';
 
 			memcpy(link.auth, str, size);
-			memset(link.auth + size, 0, sizeof(link.auth) - size);
+			(void)memset(link.auth + size, 0,
+				     sizeof(link.auth) - size);
 
 			return prov->output_string((char *)str);
 		} else {
@@ -659,7 +662,7 @@ static int prov_auth(u8_t method, u8_t action, u8_t size)
 			num %= div[size - 1];
 
 			sys_put_be32(num, &link.auth[12]);
-			memset(link.auth, 0, 12);
+			(void)memset(link.auth, 0, 12);
 
 			return prov->output_number(output, num);
 		}
@@ -1062,7 +1065,7 @@ static void prov_data(const u8_t *data)
 	prov_send(&msg);
 
 	/* Ignore any further PDUs on this link */
-	link.expect = 0;
+	link.expect = 0U;
 
 	/* Store info, since bt_mesh_provision() will end up clearing it */
 	if (IS_ENABLED(CONFIG_BT_MESH_GATT_PROXY)) {
@@ -1071,12 +1074,16 @@ static void prov_data(const u8_t *data)
 		identity_enable = false;
 	}
 
-	bt_mesh_provision(pdu, net_idx, flags, iv_index, addr, dev_key);
+	err = bt_mesh_provision(pdu, net_idx, flags, iv_index, addr, dev_key);
+	if (err) {
+		BT_ERR("Failed to provision (err %d)", err);
+		return;
+	}
 
 	/* After PB-GATT provisioning we should start advertising
 	 * using Node Identity.
 	 */
-	if (identity_enable) {
+	if (IS_ENABLED(CONFIG_BT_MESH_GATT_PROXY) && identity_enable) {
 		bt_mesh_proxy_identity_enable();
 	}
 }
@@ -1121,7 +1128,7 @@ static void close_link(u8_t err, u8_t reason)
 		prov_send_fail_msg(err);
 	}
 
-	link.rx.seg = 0;
+	link.rx.seg = 0U;
 	bearer_ctl_send(LINK_CLOSE, &reason, sizeof(reason));
 #endif
 
@@ -1270,7 +1277,7 @@ static void prov_msg_recv(void)
 
 	gen_prov_ack_send(link.rx.id);
 	link.rx.prev_id = link.rx.id;
-	link.rx.id = 0;
+	link.rx.id = 0U;
 
 	if (type != PROV_FAILED && type != link.expect) {
 		BT_WARN("Unexpected msg 0x%02x != 0x%02x", type, link.expect);
@@ -1540,7 +1547,7 @@ int bt_mesh_pb_gatt_close(struct bt_conn *conn)
 	bt_conn_unref(link.conn);
 
 	pub_key = atomic_test_bit(link.flags, LOCAL_PUB_KEY);
-	memset(&link, 0, sizeof(link));
+	(void)memset(&link, 0, sizeof(link));
 
 	if (pub_key) {
 		atomic_set_bit(link.flags, LOCAL_PUB_KEY);

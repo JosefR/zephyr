@@ -23,8 +23,8 @@
 
 /* this file is only meant to be included by kernel_structs.h */
 
-#ifndef _kernel_arch_data__h_
-#define _kernel_arch_data__h_
+#ifndef ZEPHYR_ARCH_X86_INCLUDE_KERNEL_ARCH_DATA_H_
+#define ZEPHYR_ARCH_X86_INCLUDE_KERNEL_ARCH_DATA_H_
 
 #include <toolchain.h>
 #include <linker/sections.h>
@@ -41,7 +41,7 @@
 #endif
 
 /* Some configurations require that the stack/registers be adjusted before
- * _thread_entry. See discussion in swap.S for _x86_thread_entry_wrapper()
+ * z_thread_entry. See discussion in swap.S for _x86_thread_entry_wrapper()
  */
 #if defined(CONFIG_X86_IAMCU) || defined(CONFIG_DEBUG_INFO)
 #define _THREAD_WRAPPER_REQUIRED
@@ -64,9 +64,9 @@
 
 /* end - states */
 
-#if defined(CONFIG_FP_SHARING) && defined(CONFIG_SSE)
+#if defined(CONFIG_LAZY_FP_SHARING) && defined(CONFIG_SSE)
 #define _FP_USER_MASK (K_FP_REGS | K_SSE_REGS)
-#elif defined(CONFIG_FP_SHARING)
+#elif defined(CONFIG_LAZY_FP_SHARING)
 #define _FP_USER_MASK (K_FP_REGS)
 #endif
 
@@ -425,4 +425,4 @@ typedef struct _kernel_arch _kernel_arch_t;
 
 #endif /* _ASMLANGUAGE */
 
-#endif /* _kernel_arch_data__h_ */
+#endif /* ZEPHYR_ARCH_X86_INCLUDE_KERNEL_ARCH_DATA_H_ */

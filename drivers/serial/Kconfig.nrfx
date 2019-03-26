@@ -7,9 +7,9 @@
 
 menuconfig UART_NRFX
 	bool "nRF UART nrfx drivers"
+	default y
 	select SERIAL_HAS_DRIVER
 	select SERIAL_SUPPORT_INTERRUPT
-	select GPIO
 	depends on SOC_FAMILY_NRF
 	help
 	  Enable support for nrfx UART drivers for nRF MCU series.
@@ -33,7 +33,10 @@ config UART_0_NRF_UART
 
 config UART_0_NRF_UARTE
 	bool "nRF UARTE 0"
-	depends on HAS_HW_NRF_UARTE0
+	# In nRF91 Series SoCs, UART peripherals share certain resources with
+	# SPI and TWI peripherals having the same instance number, and therefore
+	# these cannot be used simultaneously.
+	depends on HAS_HW_NRF_UARTE0 && !(SOC_SERIES_NRF91X && (SPI_0 || I2C_0))
 	select NRF_UARTE_PERIPHERAL
 	help
 	  Enable nRF UART with EasyDMA on port 0.
@@ -59,36 +62,6 @@ config UART_0_NRF_FLOW_CONTROL
 	  Enable flow control. If selected, additionally two pins, RTS and CTS
 	  have to be configured.
 
-config UART_0_NRF_TX_PIN
-	int "TX Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	help
-	  The GPIO pin to use for TX.
-
-config UART_0_NRF_RX_PIN
-	int "RX Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	help
-	  The GPIO pin to use for RX.
-
-config UART_0_NRF_CTS_PIN
-	int "CTS Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	depends on UART_0_NRF_FLOW_CONTROL
-	help
-	  The GPIO pin to use for CTS.
-
-config UART_0_NRF_RTS_PIN
-	int "RTS Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	depends on UART_0_NRF_FLOW_CONTROL
-	help
-	  The GPIO pin to use for RTS.
-
 config UART_0_NRF_TX_BUFFER_SIZE
 	int "Size of RAM buffer"
 	depends on UART_0_NRF_UARTE
@@ -104,7 +77,10 @@ endif # UART_0_NRF_UART || UART_0_NRF_UARTE
 # ----------------- port 1 -----------------
 config UART_1_NRF_UARTE
 	bool "nRF UARTE 1"
-	depends on HAS_HW_NRF_UARTE1
+	# In nRF91 Series SoCs, UART peripherals share certain resources with
+	# SPI and TWI peripherals having the same instance number, and therefore
+	# these cannot be used simultaneously.
+	depends on HAS_HW_NRF_UARTE1 && !(SOC_SERIES_NRF91X && (SPI_1 || I2C_1))
 	select NRF_UARTE_PERIPHERAL
 	help
 	  Enable nRF UART with EasyDMA on port 1.
@@ -129,36 +105,6 @@ config UART_1_NRF_FLOW_CONTROL
 	  Enable flow control. If selected, additionally two pins, RTS and CTS
 	  have to be configured.
 
-config UART_1_NRF_TX_PIN
-	int "TX Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	help
-	  The GPIO pin to use for TX.
-
-config UART_1_NRF_RX_PIN
-	int "RX Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	help
-	  The GPIO pin to use for RX.
-
-config UART_1_NRF_CTS_PIN
-	int "CTS Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	depends on UART_1_NRF_FLOW_CONTROL
-	help
-	  The GPIO pin to use for CTS.
-
-config UART_1_NRF_RTS_PIN
-	int "RTS Pin Number"
-	range 0 47 if SOC_NRF52840_QIAA
-	range 0 31
-	depends on UART_1_NRF_FLOW_CONTROL
-	help
-	  The GPIO pin to use for RTS.
-
 config UART_1_NRF_TX_BUFFER_SIZE
 	int "Size of RAM buffer"
 	range 1 65535
@@ -169,6 +115,90 @@ config UART_1_NRF_TX_BUFFER_SIZE
 	  particular SoC.
 
 endif # UART_1_NRF_UARTE
+
+# ----------------- port 2 -----------------
+config UART_2_NRF_UARTE
+	bool "nRF UARTE 2"
+	# In nRF91 Series SoCs, UART peripherals share certain resources with
+	# SPI and TWI peripherals having the same instance number, and therefore
+	# these cannot be used simultaneously.
+	depends on HAS_HW_NRF_UARTE2 && !(SOC_SERIES_NRF91X && (SPI_2 || I2C_2))
+	select NRF_UARTE_PERIPHERAL
+	help
+	  Enable nRF UART with EasyDMA on port 2.
+
+if UART_2_NRF_UARTE
+
+config UART_2_INTERRUPT_DRIVEN
+	bool "Enable interrupt support on port 2"
+	depends on UART_INTERRUPT_DRIVEN
+	default y
+	help
+	  This option enables UART interrupt support on port 2.
+
+config UART_2_NRF_PARITY_BIT
+	bool "Enable parity bit"
+	help
+	  Enable parity bit.
+
+config UART_2_NRF_FLOW_CONTROL
+	bool "Enable flow control"
+	help
+	  Enable flow control. If selected, additionally two pins, RTS and CTS
+	  have to be configured.
+
+config UART_2_NRF_TX_BUFFER_SIZE
+	int "Size of RAM buffer"
+	range 1 65535
+	default 32
+	help
+	  Size of the transmit buffer for API function: fifo_fill.
+	  This value is limited by range of TXD.MAXCNT register for
+	  particular SoC.
+
+endif # UART_2_NRF_UARTE
+
+# ----------------- port 3 -----------------
+config UART_3_NRF_UARTE
+	bool "nRF UARTE 3"
+	# In nRF91 Series SoCs, UART peripherals share certain resources with
+	# SPI and TWI peripherals having the same instance number, and therefore
+	# these cannot be used simultaneously.
+	depends on HAS_HW_NRF_UARTE3 && !(SOC_SERIES_NRF91X && (SPI_3 || I2C_3))
+	select NRF_UARTE_PERIPHERAL
+	help
+	  Enable nRF UART with EasyDMA on port 3.
+
+if UART_3_NRF_UARTE
+
+config UART_3_INTERRUPT_DRIVEN
+	bool "Enable interrupt support on port 3"
+	depends on UART_INTERRUPT_DRIVEN
+	default y
+	help
+	  This option enables UART interrupt support on port 3.
+
+config UART_3_NRF_PARITY_BIT
+	bool "Enable parity bit"
+	help
+	  Enable parity bit.
+
+config UART_3_NRF_FLOW_CONTROL
+	bool "Enable flow control"
+	help
+	  Enable flow control. If selected, additionally two pins, RTS and CTS
+	  have to be configured.
+
+config UART_3_NRF_TX_BUFFER_SIZE
+	int "Size of RAM buffer"
+	range 1 65535
+	default 32
+	help
+	  Size of the transmit buffer for API function: fifo_fill.
+	  This value is limited by range of TXD.MAXCNT register for
+	  particular SoC.
+
+endif # UART_3_NRF_UARTE
 
 config NRF_UART_PERIPHERAL
 	bool

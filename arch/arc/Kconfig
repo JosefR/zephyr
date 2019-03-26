@@ -6,27 +6,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-choice
-	prompt "ARC SoC Selection"
-	depends on ARC
-
-	source "arch/arc/soc/*/Kconfig.soc"
-endchoice
-
-
 menu "ARC Options"
 	depends on ARC
 
-# Include these first so that any properties (e.g. defaults) below can be
-# overriden (by defining symbols in multiple locations)
-source "arch/arc/soc/*/Kconfig"
-
 config ARCH
 	default "arc"
-
-config ARCH_DEFCONFIG
-	string
-	default "arch/arc/defconfig"
 
 menu "ARC EM4 processor options"
 
@@ -155,7 +139,6 @@ depends on CPU_HAS_MPU
 
 config ARC_MPU_ENABLE
 	bool "Enable MPU"
-	depends on CPU_HAS_MPU
 	select ARC_MPU
 	help
 	  Enable MPU

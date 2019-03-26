@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef _SEGMENTATION_H
-#define _SEGMENTATION_H
+#ifndef ZEPHYR_INCLUDE_ARCH_X86_SEGMENTATION_H_
+#define ZEPHYR_INCLUDE_ARCH_X86_SEGMENTATION_H_
 
 #include <zephyr/types.h>
 
@@ -108,18 +108,6 @@ struct __packed task_state_segment {
 	u8_t t:1;		/* Trap bit */
 	u16_t reserved_12:15;
 	u16_t iomap;
-};
-
-/* Section 3.4.2 of IA architecture SW developer manual, Vol 3. */
-struct __packed segment_selector {
-	union {
-		struct {
-			u8_t rpl:2;
-			u8_t table:1; /* 0=gdt 1=ldt */
-			u16_t index:13;
-		};
-		u16_t val;
-	};
 };
 
 #define SEG_SELECTOR(index, table, dpl) (index << 3 | table << 2 | dpl)
@@ -389,6 +377,8 @@ struct __packed far_ptr {
 extern struct pseudo_descriptor _gdt;
 #endif
 
+extern const struct pseudo_descriptor z_idt;
+
 /**
  * Properly set the segment descriptor segment and offset
  *
@@ -398,7 +388,7 @@ extern struct pseudo_descriptor _gdt;
  * @param offset Offset within segment
  * @param segment_selector Segment selector
  */
-static inline void _sd_set_seg_offset(struct segment_descriptor *sd,
+static inline void z_sd_set_seg_offset(struct segment_descriptor *sd,
 				      u16_t segment_selector,
 				      u32_t offset)
 {
@@ -421,7 +411,7 @@ static inline void _init_irq_gate(struct segment_descriptor *sd,
 				  u16_t seg_selector, u32_t offset,
 				  u32_t dpl)
 {
-	_sd_set_seg_offset(sd, seg_selector, offset);
+	z_sd_set_seg_offset(sd, seg_selector, offset);
 	sd->dpl = dpl;
 	sd->descriptor_type = DT_TYPE_SYSTEM;
 	sd->present = 1;
@@ -559,4 +549,4 @@ static inline u16_t _get_ds(void)
 }
 #endif
 
-#endif /* _SEGMENTATION_H */
+#endif /* ZEPHYR_INCLUDE_ARCH_X86_SEGMENTATION_H_ */

@@ -4,16 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define SYS_LOG_LEVEL SYS_LOG_LEVEL_DEBUG
-#define SYS_LOG_DOMAIN "wpanusb"
-#include <logging/sys_log.h>
+#define LOG_LEVEL CONFIG_USB_DEVICE_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_REGISTER(wpanusb);
 
-/* Enable net_hexdump() here */
-#define NET_LOG_ENABLED		1
 #include <net_private.h>
 
 #include <device.h>
-#include <shell/shell.h>
 
 #include <usb/usb_device.h>
 #include <usb/usb_common.h>
@@ -139,7 +136,7 @@ static struct usb_ep_cfg_data wpanusb_ep[] = {
 	},
 };
 
-static void wpanusb_status_cb(enum usb_dc_status_code status, u8_t *param)
+static void wpanusb_status_cb(enum usb_dc_status_code status, const u8_t *param)
 {
 	struct wpanusb_dev_data_t * const dev_data = DEV_DATA(wpanusb_dev);
 
@@ -151,29 +148,29 @@ static void wpanusb_status_cb(enum usb_dc_status_code status, u8_t *param)
 	/* Check the USB status and do needed action if required */
 	switch (status) {
 	case USB_DC_ERROR:
-		SYS_LOG_DBG("USB device error");
+		LOG_DBG("USB device error");
 		break;
 	case USB_DC_RESET:
-		SYS_LOG_DBG("USB device reset detected");
+		LOG_DBG("USB device reset detected");
 		break;
 	case USB_DC_CONNECTED:
-		SYS_LOG_DBG("USB device connected");
+		LOG_DBG("USB device connected");
 		break;
 	case USB_DC_CONFIGURED:
-		SYS_LOG_DBG("USB device configured");
+		LOG_DBG("USB device configured");
 		break;
 	case USB_DC_DISCONNECTED:
-		SYS_LOG_DBG("USB device disconnected");
+		LOG_DBG("USB device disconnected");
 		break;
 	case USB_DC_SUSPEND:
-		SYS_LOG_DBG("USB device suspended");
+		LOG_DBG("USB device suspended");
 		break;
 	case USB_DC_RESUME:
-		SYS_LOG_DBG("USB device resumed");
+		LOG_DBG("USB device resumed");
 		break;
 	case USB_DC_UNKNOWN:
 	default:
-		SYS_LOG_DBG("USB unknown state");
+		LOG_DBG("USB unknown state");
 		break;
 		}
 }
@@ -199,7 +196,7 @@ static int set_channel(void *data, int len)
 {
 	struct set_channel *req = data;
 
-	SYS_LOG_DBG("page %u channel %u", req->page, req->channel);
+	LOG_DBG("page %u channel %u", req->page, req->channel);
 
 	return radio_api->set_channel(ieee802154_dev, req->channel);
 }
@@ -208,7 +205,7 @@ static int set_ieee_addr(void *data, int len)
 {
 	struct set_ieee_addr *req = data;
 
-	SYS_LOG_DBG("len %u", len);
+	LOG_DBG("len %u", len);
 
 	if (IEEE802154_HW_FILTER &
 	    radio_api->get_capabilities(ieee802154_dev)) {
@@ -228,7 +225,7 @@ static int set_short_addr(void *data, int len)
 {
 	struct set_short_addr *req = data;
 
-	SYS_LOG_DBG("len %u", len);
+	LOG_DBG("len %u", len);
 
 
 	if (IEEE802154_HW_FILTER &
@@ -249,7 +246,7 @@ static int set_pan_id(void *data, int len)
 {
 	struct set_pan_id *req = data;
 
-	SYS_LOG_DBG("len %u", len);
+	LOG_DBG("len %u", len);
 
 	if (IEEE802154_HW_FILTER &
 	    radio_api->get_capabilities(ieee802154_dev)) {
@@ -267,35 +264,35 @@ static int set_pan_id(void *data, int len)
 
 static int start(void)
 {
-	SYS_LOG_INF("Start IEEE 802.15.4 device");
+	LOG_INF("Start IEEE 802.15.4 device");
 
 	return radio_api->start(ieee802154_dev);
 }
 
 static int stop(void)
 {
-	SYS_LOG_INF("Stop IEEE 802.15.4 device");
+	LOG_INF("Stop IEEE 802.15.4 device");
 
 	return radio_api->stop(ieee802154_dev);
 }
 
 static int tx(struct net_pkt *pkt)
 {
-	struct net_buf *buf = net_buf_frag_last(pkt->frags);
+	struct net_buf *buf = net_buf_frag_last(pkt->buffer);
 	u8_t seq = net_buf_pull_u8(buf);
 	int retries = 3;
 	int ret;
 
-	SYS_LOG_DBG("len %d seq %u", buf->len, seq);
+	LOG_DBG("len %d seq %u", buf->len, seq);
 
 	do {
 		ret = radio_api->tx(ieee802154_dev, pkt, buf);
 	} while (ret && retries--);
 
 	if (ret) {
-		SYS_LOG_ERR("Error sending data, seq %u", seq);
+		LOG_ERR("Error sending data, seq %u", seq);
 		/* Send seq = 0 for unsuccessful send */
-		seq = 0;
+		seq = 0U;
 	}
 
 	try_write(WPANUSB_ENDP_BULK_IN, &seq, sizeof(seq));
@@ -311,31 +308,22 @@ static int wpanusb_vendor_handler(struct usb_setup_packet *setup,
 				  s32_t *len, u8_t **data)
 {
 	struct net_pkt *pkt;
-	struct net_buf *buf;
 
-	pkt = net_pkt_get_reserve_tx(0, K_NO_WAIT);
+	pkt = net_pkt_alloc_with_buffer(NULL, *len, AF_UNSPEC, 0, K_NO_WAIT);
 	if (!pkt) {
 		return -ENOMEM;
 	}
 
-	buf = net_pkt_get_frag(pkt, K_NO_WAIT);
-	if (!buf) {
-		net_pkt_unref(pkt);
-		return -ENOMEM;
-	}
-
-	net_pkt_frag_insert(pkt, buf);
-
-	net_buf_add_u8(buf, setup->bRequest);
+	net_pkt_write_u8_new(pkt, setup->bRequest);
 
 	/* Add seq to TX */
 	if (setup->bRequest == TX) {
-		net_buf_add_u8(buf, setup->wIndex);
+		net_pkt_write_u8_new(pkt, setup->wIndex);
 	}
 
-	memcpy(net_buf_add(buf, *len), *data, *len);
+	net_pkt_write_new(pkt, *data, *len);
 
-	SYS_LOG_DBG("len %u seq %u", *len, setup->wIndex);
+	LOG_DBG("len %u seq %u", *len, setup->wIndex);
 
 	k_fifo_put(&tx_queue, pkt);
 
@@ -344,7 +332,7 @@ static int wpanusb_vendor_handler(struct usb_setup_packet *setup,
 
 static void tx_thread(void)
 {
-	SYS_LOG_DBG("Tx thread started");
+	LOG_DBG("Tx thread started");
 
 	while (1) {
 		u8_t cmd;
@@ -352,14 +340,14 @@ static void tx_thread(void)
 		struct net_buf *buf;
 
 		pkt = k_fifo_get(&tx_queue, K_FOREVER);
-		buf = net_buf_frag_last(pkt->frags);
+		buf = net_buf_frag_last(pkt->buffer);
 		cmd = net_buf_pull_u8(buf);
 
 		net_hexdump(">", buf->data, buf->len);
 
 		switch (cmd) {
 		case RESET:
-			SYS_LOG_DBG("Reset device");
+			LOG_DBG("Reset device");
 			break;
 		case TX:
 			tx(pkt);
@@ -383,7 +371,7 @@ static void tx_thread(void)
 			set_pan_id(buf->data, buf->len);
 			break;
 		default:
-			SYS_LOG_ERR("%x: Not handled for now", cmd);
+			LOG_ERR("%x: Not handled for now", cmd);
 			break;
 		}
 
@@ -414,7 +402,7 @@ static int wpanusb_init(struct device *dev)
 	struct wpanusb_dev_data_t * const dev_data = DEV_DATA(dev);
 	int ret;
 
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
 	wpanusb_config.interface.payload_data = dev_data->interface_data;
 	wpanusb_dev = dev;
@@ -422,14 +410,14 @@ static int wpanusb_init(struct device *dev)
 	/* Initialize the USB driver with the right configuration */
 	ret = usb_set_config(&wpanusb_config);
 	if (ret < 0) {
-		SYS_LOG_ERR("Failed to configure USB");
+		LOG_ERR("Failed to configure USB");
 		return ret;
 	}
 
 	/* Enable USB driver */
 	ret = usb_enable(&wpanusb_config);
 	if (ret < 0) {
-		SYS_LOG_ERR("Failed to enable USB");
+		LOG_ERR("Failed to enable USB");
 		return ret;
 	}
 
@@ -472,44 +460,40 @@ static void init_tx_queue(void)
  */
 int net_recv_data(struct net_if *iface, struct net_pkt *pkt)
 {
-	struct net_buf *frag;
+	struct net_buf *frame;
 
-	SYS_LOG_DBG("Got data, pkt %p, len %d", pkt, net_pkt_get_len(pkt));
+	LOG_DBG("Got data, pkt %p, len %d", pkt, net_pkt_get_len(pkt));
 
-	frag = net_buf_frag_last(pkt->frags);
+	frame = net_buf_frag_last(pkt->buffer);
 
 	/**
 	 * Add length 1 byte, do not forget to reserve it
 	 */
-	net_buf_push_u8(frag, net_pkt_get_len(pkt));
+	net_buf_push_u8(frame, net_pkt_get_len(pkt));
 
 	/**
 	 * Add LQI at the end of the packet
 	 */
-	net_buf_add_u8(frag, net_pkt_ieee802154_lqi(pkt));
+	net_buf_add_u8(frame, net_pkt_ieee802154_lqi(pkt));
 
-	net_hexdump("<", frag->data, net_pkt_get_len(pkt));
+	net_hexdump("<", frame->data, net_pkt_get_len(pkt));
 
-	try_write(WPANUSB_ENDP_BULK_IN, frag->data, net_pkt_get_len(pkt));
+	try_write(WPANUSB_ENDP_BULK_IN, frame->data, net_pkt_get_len(pkt));
 
 	net_pkt_unref(pkt);
 
 	return 0;
 }
 
-struct shell_cmd commands[] = {
-	{ NULL, NULL }
-};
-
 void main(void)
 {
 	wpanusb_start(&__dev);
 
-	SYS_LOG_INF("Start");
+	LOG_INF("Start");
 
 	ieee802154_dev = device_get_binding(CONFIG_NET_CONFIG_IEEE802154_DEV_NAME);
 	if (!ieee802154_dev) {
-		SYS_LOG_ERR("Cannot get IEEE802.15.4 device");
+		LOG_ERR("Cannot get IEEE802.15.4 device");
 		return;
 	}
 
@@ -523,7 +507,5 @@ void main(void)
 
 	/* TODO: Initialize more */
 
-	SYS_LOG_DBG("radio_api %p initialized", radio_api);
-
-	SHELL_REGISTER("wpan", commands);
+	LOG_DBG("radio_api %p initialized", radio_api);
 }

@@ -40,7 +40,13 @@ SECTION_FUNC(TEXT,_arm_userspace_enter)
     /* move user_entry to lr */
     mov lr, r0
 
-    /* set stack to priviliged stack */
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* clear stack pointer limit before setting the PSP */
+    mov r0, #0
+    msr PSPLIM, r0
+#endif
+
+    /* set stack to privileged stack */
     ldr r0, =_kernel
     ldr r0, [r0, #_kernel_offset_to_current]
     ldr r0, [r0, #_thread_offset_to_priv_stack_start]    /* priv stack ptr */
@@ -49,6 +55,36 @@ SECTION_FUNC(TEXT,_arm_userspace_enter)
 
     mov ip, sp
     msr PSP, r0
+
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* set stack pointer limit to the start of the priv stack */
+    ldr r0, =_kernel
+    ldr r0, [r0, #_kernel_offset_to_current]
+    ldr r0, [r0, #_thread_offset_to_priv_stack_start]    /* priv stack ptr */
+    msr PSPLIM, r0
+#endif
+
+#if defined (CONFIG_ARM_MPU)
+    /* Re-program dynamic memory map.
+     *
+     * Important note:
+     * z_arch_configure_dynamic_mpu_regions() may re-program the MPU Stack Guard
+     * to guard the privilege stack for overflows (if building with option
+     * CONFIG_MPU_STACK_GUARD). There is a risk of actually overflowing the
+     * stack while doing the re-programming. We minimize the risk by placing
+     * this function immediately after we have switched to the privileged stack
+     * so that the whole stack area is available for this critical operation.
+     *
+     * Note that the risk for overflow is higher if using the normal thread
+     * stack, since we do not control how much stack is actually left, when
+     * user invokes _arm_userspace_enter().
+     */
+    push {r0,r1,r2,r3,ip,lr}
+    ldr r0, =_kernel
+    ldr r0, [r0, #_kernel_offset_to_current]
+    bl z_arch_configure_dynamic_mpu_regions
+    pop {r0,r1,r2,r3,ip,lr}
+#endif
 
     /* load up stack info from user stack */
     ldr r0, [ip]
@@ -72,20 +108,18 @@ SECTION_FUNC(TEXT,_arm_userspace_enter)
 #endif
     bl memset
 
-    /* setup arguments to configure_mpu_mem_domain */
-    ldr r0, =_kernel
-    ldr r0, [r0, #_kernel_offset_to_current]
-    bl configure_mpu_mem_domain
-
-    /* setup arguments configure_mpu_user_context */
-    ldr r0, =_kernel
-    ldr r0, [r0, #_kernel_offset_to_current]
-    bl configure_mpu_user_context
-
     pop {r0,r1,r2,r3,ip,lr}
 
     /* r0 contains user stack start, ip contains user stack size */
     add r0, r0, ip   /* calculate top of stack */
+
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* clear stack limit (stack protection not required in user mode) */
+    push {r3}
+    mov r3, #0
+    msr PSPLIM, r3
+    pop {r3}
+#endif
 
     /* set stack to user stack */
     msr PSP, r0
@@ -95,10 +129,16 @@ SECTION_FUNC(TEXT,_arm_userspace_enter)
 
 #ifdef CONFIG_EXECUTION_BENCHMARKING
     stm sp!,{r0-r3} /* Save regs r0 to r4 on stack */
-    push {lr}
+    push {r0, lr}
     bl read_timer_end_of_userspace_enter
-    pop {lr}
-    ldm sp!,{r0-r3} /* Load back regs ro to r4 */
+#if defined(CONFIG_ARMV6_M_ARMV8_M_BASELINE)
+    pop {r0, r3}
+    mov lr,r3
+#else
+    pop {r0, lr}
+#endif /* CONFIG_ARMV6_M_ARMV8_M_BASELINE */
+    ldm sp!,{r0-r3} /* Restore r0 to r3 regs */
+
 #endif /* CONFIG_EXECUTION_BENCHMARKING */
 
     /* change processor mode to unprivileged */
@@ -112,8 +152,8 @@ SECTION_FUNC(TEXT,_arm_userspace_enter)
      */
     isb
 
-    /* jump to _thread_entry entry */
-    ldr ip, =_thread_entry
+    /* jump to z_thread_entry entry */
+    ldr ip, =z_thread_entry
     bx ip
 
 /**
@@ -145,7 +185,7 @@ SECTION_FUNC(TEXT, _arm_do_syscall)
     b dispatch_syscall
 
 valid_syscall:
-    /* setup priviliged stack */
+    /* setup privileged stack */
     push {r6}
     ldr r6, =_kernel
     ldr r6, [r6, #_kernel_offset_to_current]
@@ -157,8 +197,26 @@ valid_syscall:
     str sp, [ip, #0]
     str lr, [ip, #4]
 
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* clear stack pointer limit before setting the PSP */
+    push {r3}
+    mov r3, #0
+    msr PSPLIM, r3
+    pop {r3}
+#endif
+
     /* switch to privileged stack */
     msr PSP, ip
+
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* Set stack pointer limit (needed in privileged mode) */
+    push {r6}
+    ldr r6, =_kernel
+    ldr r6, [r6, #_kernel_offset_to_current]
+    ldr r6, [r6, #_thread_offset_to_priv_stack_start]    /* priv stack ptr */
+    msr PSPLIM, r6
+    pop {r6}
+#endif
 
     /* push args to complete stack frame */
     push {r4,r5}
@@ -173,6 +231,12 @@ dispatch_syscall:
 
     /* restore LR */
     ldr lr, [sp,#12]
+
+#if defined(CONFIG_BUILTIN_STACK_GUARD)
+    /* clear stack limit (stack protection not required in user mode) */
+    mov r3, #0
+    msr PSPLIM, r3
+#endif
 
     /* set stack back to unprivileged stack */
     ldr ip, [sp,#8]

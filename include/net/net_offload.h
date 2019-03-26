@@ -9,8 +9,8 @@
  * @brief Public API for offloading IP stack
  */
 
-#ifndef __NET_OFFLOAD_H__
-#define __NET_OFFLOAD_H__
+#ifndef ZEPHYR_INCLUDE_NET_NET_OFFLOAD_H_
+#define ZEPHYR_INCLUDE_NET_NET_OFFLOAD_H_
 
 /**
  * @brief Network offloading interface
@@ -18,8 +18,6 @@
  * @ingroup networking
  * @{
  */
-
-#if defined(CONFIG_NET_OFFLOAD)
 
 #include <net/buf.h>
 #include <net/net_ip.h>
@@ -432,10 +430,8 @@ static inline int net_offload_put(struct net_if *iface,
 }
 #endif
 
-#endif /* CONFIG_NET_OFFLOAD */
-
 /**
  * @}
  */
 
-#endif /* __NET_OFFLOAD_H__ */
+#endif /* ZEPHYR_INCLUDE_NET_NET_OFFLOAD_H_ */

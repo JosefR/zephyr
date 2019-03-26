@@ -1,5 +1,5 @@
-#ifndef __NIOS2_H__
-#define __NIOS2_H__
+#ifndef ZEPHYR_INCLUDE_ARCH_NIOS2_NIOS2_H_
+#define ZEPHYR_INCLUDE_ARCH_NIOS2_NIOS2_H_
 
 /******************************************************************************
 *                                                                             *
@@ -155,17 +155,18 @@ enum nios2_creg {
 #define _nios2_creg_read(reg) __builtin_rdctl(reg)
 #define _nios2_creg_write(reg, val) __builtin_wrctl(reg, val)
 
-#define _nios2_get_register_address(base, regnum) \
+#define z_nios2_get_register_address(base, regnum) \
 	((void *)(((u8_t *)base) + ((regnum) * (SYSTEM_BUS_WIDTH / 8))))
 
 static inline void _nios2_reg_write(void *base, int regnum, u32_t data)
 {
-	sys_write32(data, (mm_reg_t)_nios2_get_register_address(base, regnum));
+	sys_write32(data,
+		    (mm_reg_t)z_nios2_get_register_address(base, regnum));
 }
 
 static inline u32_t _nios2_reg_read(void *base, int regnum)
 {
-	return sys_read32((mm_reg_t)_nios2_get_register_address(base, regnum));
+	return sys_read32((mm_reg_t)z_nios2_get_register_address(base, regnum));
 }
 
 #endif /* _ASMLANGUAGE */
@@ -322,4 +323,4 @@ static inline u32_t _nios2_reg_read(void *base, int regnum)
 }
 #endif /* __cplusplus */
 
-#endif /* __NIOS2_H__ */
+#endif /* ZEPHYR_INCLUDE_ARCH_NIOS2_NIOS2_H_ */

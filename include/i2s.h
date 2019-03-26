@@ -9,8 +9,8 @@
  * @brief Public APIs for the I2S (Inter-IC Sound) bus drivers.
  */
 
-#ifndef __I2S_H__
-#define __I2S_H__
+#ifndef ZEPHYR_INCLUDE_I2S_H_
+#define ZEPHYR_INCLUDE_I2S_H_
 
 /**
  * @defgroup i2s_interface I2S Interface
@@ -346,8 +346,11 @@ struct i2s_driver_api {
  * @retval 0 If successful.
  * @retval -EINVAL Invalid argument.
  */
-static inline int i2s_configure(struct device *dev, enum i2s_dir dir,
-				struct i2s_config *cfg)
+__syscall int i2s_configure(struct device *dev, enum i2s_dir dir,
+			    struct i2s_config *cfg);
+
+static inline int z_impl_i2s_configure(struct device *dev, enum i2s_dir dir,
+				      struct i2s_config *cfg)
 {
 	const struct i2s_driver_api *api = dev->driver_api;
 
@@ -505,7 +508,7 @@ __syscall int i2s_buf_write(struct device *dev, void *buf, size_t size);
 __syscall int i2s_trigger(struct device *dev, enum i2s_dir dir,
 			  enum i2s_trigger_cmd cmd);
 
-static inline int _impl_i2s_trigger(struct device *dev, enum i2s_dir dir,
+static inline int z_impl_i2s_trigger(struct device *dev, enum i2s_dir dir,
 				    enum i2s_trigger_cmd cmd)
 {
 	const struct i2s_driver_api *api = dev->driver_api;
@@ -523,4 +526,4 @@ static inline int _impl_i2s_trigger(struct device *dev, enum i2s_dir dir,
  * @}
  */
 
-#endif /* __I2S_H__ */
+#endif /* ZEPHYR_INCLUDE_I2S_H_ */

@@ -5,7 +5,9 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #ifndef __ZEPHYR__
 
@@ -18,10 +20,9 @@
 
 #else
 
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include <net/socket.h>
 #include <kernel.h>
-#include <net/net_app.h>
 
 #endif
 
@@ -38,16 +39,31 @@
 struct pollfd pollfds[NUM_FDS];
 int pollnum;
 
-static void nonblock(int fd)
-{
-	int fl = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, fl | O_NONBLOCK);
-}
+#define fatal(msg, ...) { \
+		printf("Error: " msg "\n", ##__VA_ARGS__); \
+		exit(1); \
+	}
 
-static void block(int fd)
+
+static void setblocking(int fd, bool val)
 {
-	int fl = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, fl & ~O_NONBLOCK);
+	int fl, res;
+
+	fl = fcntl(fd, F_GETFL, 0);
+	if (fl == -1) {
+		fatal("fcntl(F_GETFL): %d", errno);
+	}
+
+	if (val) {
+		fl &= ~O_NONBLOCK;
+	} else {
+		fl |= O_NONBLOCK;
+	}
+
+	res = fcntl(fd, F_SETFL, fl);
+	if (fl == -1) {
+		fatal("fcntl(F_SETFL): %d", errno);
+	}
 }
 
 int pollfds_add(int fd)
@@ -101,26 +117,39 @@ int main(void)
 	};
 
 	serv4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (serv4 < 0) {
+		printf("error: socket: %d\n", errno);
+		exit(1);
+	}
+
 	res = bind(serv4, (struct sockaddr *)&bind_addr4, sizeof(bind_addr4));
 	if (res == -1) {
 		printf("Cannot bind IPv4, errno: %d\n", errno);
 	}
 
 	serv6 = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+	if (serv6 < 0) {
+		printf("error: socket(AF_INET6): %d\n", errno);
+		exit(1);
+	}
 	#ifdef IPV6_V6ONLY
 	/* For Linux, we need to make socket IPv6-only to bind it to the
 	 * same port as IPv4 socket above.
 	 */
 	int TRUE = 1;
-	setsockopt(serv6, IPPROTO_IPV6, IPV6_V6ONLY, &TRUE, sizeof(TRUE));
+	res = setsockopt(serv6, IPPROTO_IPV6, IPV6_V6ONLY, &TRUE, sizeof(TRUE));
+	if (res < 0) {
+		printf("error: setsockopt: %d\n", errno);
+		exit(1);
+	}
 	#endif
 	res = bind(serv6, (struct sockaddr *)&bind_addr6, sizeof(bind_addr6));
 	if (res == -1) {
 		printf("Cannot bind IPv6, errno: %d\n", errno);
 	}
 
-	nonblock(serv4);
-	nonblock(serv6);
+	setblocking(serv4, false);
+	setblocking(serv6, false);
 	listen(serv4, 5);
 	listen(serv6, 5);
 
@@ -151,16 +180,24 @@ int main(void)
 						    &client_addr_len);
 				void *addr = &((struct sockaddr_in *)&client_addr)->sin_addr;
 
+				if (client < 0) {
+					printf("error: accept: %d\n", errno);
+					continue;
+				}
 				inet_ntop(client_addr.ss_family, addr,
 					  addr_str, sizeof(addr_str));
 				printf("Connection #%d from %s fd=%d\n", counter++,
 				       addr_str, client);
 				if (pollfds_add(client) < 0) {
 					static char msg[] = "Too many connections\n";
-					send(client, msg, sizeof(msg) - 1, 0);
+
+					res = send(client, msg, sizeof(msg) - 1, 0);
+					if (res < 0) {
+						printf("error: send: %d\n", errno);
+					}
 					close(client);
 				} else {
-					nonblock(client);
+					setblocking(client, false);
 				}
 			} else {
 				char buf[128];
@@ -183,7 +220,8 @@ error:
 					 * to not block, but to be robust, we
 					 * handle all possibilities.
 					 */
-					block(fd);
+					setblocking(fd, true);
+
 					for (p = buf; len; len -= out_len) {
 						out_len = send(fd, p, len, 0);
 						if (out_len < 0) {
@@ -194,7 +232,8 @@ error:
 						}
 						p += out_len;
 					}
-					nonblock(fd);
+
+					setblocking(fd, false);
 				}
 			}
 		}

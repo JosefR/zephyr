@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef TOOLCHAIN_COMMON_H
-#define TOOLCHAIN_COMMON_H
+#ifndef ZEPHYR_INCLUDE_TOOLCHAIN_COMMON_H_
+#define ZEPHYR_INCLUDE_TOOLCHAIN_COMMON_H_
 /**
  * @file
  * @brief Common toolchain abstraction
@@ -54,7 +54,7 @@
 
 #ifdef _ASMLANGUAGE
 
-  #ifdef CONFIG_X86
+  #if defined(CONFIG_X86) || defined(CONFIG_X86_64)
 
     #ifdef PERF_OPT
       #define PERFOPT_ALIGN .balign 16
@@ -64,11 +64,7 @@
 
   #elif defined(CONFIG_ARM)
 
-    #ifdef CONFIG_ISA_THUMB
-      #define PERFOPT_ALIGN .balign  2
-    #else
-      #define PERFOPT_ALIGN .balign  4
-    #endif
+    #define PERFOPT_ALIGN .balign  4
 
   #elif defined(CONFIG_ARC)
 
@@ -96,8 +92,8 @@
   #define ALWAYS_INLINE inline __attribute__((always_inline))
 #endif
 
-#define _STRINGIFY(x) #x
-#define STRINGIFY(s) _STRINGIFY(s)
+#define Z_STRINGIFY(x) #x
+#define STRINGIFY(s) Z_STRINGIFY(s)
 
 /* concatenate the values of the arguments into one */
 #define _DO_CONCAT(x, y) x ## y
@@ -130,4 +126,4 @@
 #define BUILD_ASSERT_MSG(EXPR, MSG) BUILD_ASSERT(EXPR)
 #endif
 
-#endif /* TOOLCHAIN_COMMON_H */
+#endif /* ZEPHYR_INCLUDE_TOOLCHAIN_COMMON_H_ */

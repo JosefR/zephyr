@@ -34,7 +34,7 @@ _zxt_dispatch:
 	bnez a2, .L_frxt_dispatch_stk
 
 .L_frxt_dispatch_sol:
-	/* Solicited stack frame. Restore retval from _Swap */
+	/* Solicited stack frame. Restore retval from z_swap */
 	l32i a2, a3, THREAD_OFFSET(retval)
 	l32i a3, sp, XT_SOL_ps
 
@@ -71,9 +71,9 @@ _zxt_dispatch:
 #endif
 #ifdef CONFIG_STACK_SENTINEL
 #ifdef __XTENSA_CALL0_ABI__
-	call0 _check_stack_sentinel
+	call0 z_check_stack_sentinel
 #else
-	call4 _check_stack_sentinel
+	call4 z_check_stack_sentinel
 #endif
 #endif
 	/*
@@ -259,7 +259,7 @@ _zxt_timer_int:
 .L_xt_timer_int_catchup:
 #ifdef CONFIG_SYS_CLOCK_EXISTS
 
-#if CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0)
+#if USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0)
 	/* Update the timer comparator for the next tick. */
 #ifdef XT_CLOCK_FREQ
 	movi a2, XT_TICK_DIVISOR  /* a2 = comparator increment          */
@@ -271,7 +271,7 @@ _zxt_timer_int:
 	add a4, a3, a2            /* a4 = new comparator value          */
 	wsr a4, XT_CCOMPARE       /* update comp. and clear interrupt   */
 	esync
-#endif /* CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0) */
+#endif /* USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0) */
 
 
 #ifdef __XTENSA_CALL0_ABI__
@@ -292,13 +292,13 @@ _zxt_timer_int:
 	callx4   a7
 #endif
 
-#if CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0)
+#if USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0)
 	/* Check if we need to process more ticks to catch up. */
 	esync          /* ensure comparator update complete  */
 	rsr a4, CCOUNT /* a4 = cycle count                   */
 	sub a4, a4, a3 /* diff = ccount - old comparator     */
 	blt a2, a4, .L_xt_timer_int_catchup  /* repeat while diff > divisor */
-#endif /* CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0) */
+#endif /* USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0) */
 
 #endif
 
@@ -320,7 +320,7 @@ _zxt_tick_timer_init:
 
 	ENTRY(48)
 #ifdef CONFIG_SYS_CLOCK_EXISTS
-#if CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0)
+#if USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0)
 
 	/* Set up the periodic tick timer (assume enough time to complete
 	 * init).
@@ -341,14 +341,14 @@ _zxt_tick_timer_init:
 	*/
 #ifdef __XTENSA_CALL0_ABI__
 	movi a2, XT_TIMER_INTEN
-	call0  _xt_ints_on
+	call0  z_xt_ints_on
 #else
 	movi a6, XT_TIMER_INTEN
-	call4 _xt_ints_on
+	call4 z_xt_ints_on
 #endif
 
 #endif
-#endif /* CONFIG_XTENSA_INTERNAL_TIMER || (CONFIG_XTENSA_TIMER_IRQ < 0) */
+#endif /* USE_INTERNAL_TIMER || (EXTERNAL_TIMER_IRQ < 0) */
 	RET(48)
 
 /*

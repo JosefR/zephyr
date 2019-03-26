@@ -6,7 +6,6 @@
 set -e
 
 JOBS=5
-HEAD="grub-2.02"
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 if [ "x$1" == "x" ]; then
@@ -22,7 +21,7 @@ prepare() {
   fi
 
   pushd src
-  git checkout $HEAD
+  git checkout grub-2.02-285-g5bc41db75
   git clean -fdx
   popd
 }
@@ -30,6 +29,7 @@ prepare() {
 build() {
   pushd src
 
+  ./bootstrap
   ./autogen.sh
   ./configure --with-platform=efi --target=${TARGET_ARCH}
 
@@ -41,7 +41,7 @@ build() {
             exfat fat multiboot2 multiboot terminal part_msdos part_gpt normal \
             all_video aout configfile echo file fixvideo fshelp gfxterm gfxmenu \
             gfxterm_background gfxterm_menu legacycfg video_bochs video_cirrus \
-            video_colors video_fb videoinfo video
+            video_colors video_fb videoinfo video net tftp
 
   popd
 }

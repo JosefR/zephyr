@@ -12,8 +12,8 @@
  * other definitions for the RISCV32 processor architecture.
  */
 
-#ifndef _kernel_arch_func__h_
-#define _kernel_arch_func__h_
+#ifndef ZEPHYR_ARCH_RISCV32_INCLUDE_KERNEL_ARCH_FUNC_H_
+#define ZEPHYR_ARCH_RISCV32_INCLUDE_KERNEL_ARCH_FUNC_H_
 
 #include <soc.h>
 
@@ -32,23 +32,16 @@ static ALWAYS_INLINE void kernel_arch_init(void)
 }
 
 static ALWAYS_INLINE void
-_set_thread_return_value(struct k_thread *thread, unsigned int value)
+z_set_thread_return_value(struct k_thread *thread, unsigned int value)
 {
 	thread->arch.swap_return_value = value;
 }
 
-static inline void _IntLibInit(void)
-{
-#if defined(CONFIG_RISCV_SOC_INTERRUPT_INIT)
-	soc_interrupt_init();
-#endif
-}
-
-FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
+FUNC_NORETURN void z_NanoFatalErrorHandler(unsigned int reason,
 					  const NANO_ESF *esf);
 
 
-#define _is_in_isr() (_kernel.nested != 0)
+#define z_is_in_isr() (_kernel.nested != 0U)
 
 #ifdef CONFIG_IRQ_OFFLOAD
 int _irq_do_offload(void);
@@ -60,4 +53,4 @@ int _irq_do_offload(void);
 }
 #endif
 
-#endif /* _kernel_arch_func__h_ */
+#endif /* ZEPHYR_ARCH_RISCV32_INCLUDE_KERNEL_ARCH_FUNC_H_ */
