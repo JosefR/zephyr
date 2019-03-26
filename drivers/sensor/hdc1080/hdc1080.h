@@ -20,7 +20,7 @@ struct hdc1080_data {
 	struct device *i2c;
 	u16_t t_sample;
 	u16_t rh_sample;
-    //struct k_sem data_sem;
+    struct k_timer read_timer;
 };
 
 #define SYS_LOG_DOMAIN "HDC1080"

@@ -27,8 +27,7 @@ static int hdc1080_sample_fetch(struct device *dev, enum sensor_channel chan)
 		return -EIO;
 	}
 
-//	k_sem_take(&drv_data->data_sem, K_FOREVER);
-    k_sleep(10);
+	k_sleep(10);
 
 	if (i2c_read(drv_data->i2c, buf, 4, HDC1080_I2C_ADDRESS) < 0) {
 		SYS_LOG_DBG("Failed to read sample data");
@@ -40,7 +39,6 @@ static int hdc1080_sample_fetch(struct device *dev, enum sensor_channel chan)
 
 	return 0;
 }
-
 
 static int hdc1080_channel_get(struct device *dev,
 			       enum sensor_channel chan,
@@ -105,12 +103,10 @@ static int hdc1080_init(struct device *dev)
 		return -EINVAL;
 	}
 	if (read16(drv_data->i2c, HDC1080_I2C_ADDRESS, HDC1000_DEVICEID)
-	    != 0x1000) {
+	    != 0x1050) {
 		SYS_LOG_ERR("Failed to get correct device ID");
 		return -EINVAL;
 	}
-
-//	k_sem_init(&drv_data->data_sem, 0, UINT_MAX);
 
 	return 0;
 }
