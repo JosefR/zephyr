@@ -69,6 +69,8 @@ source "drivers/sensor/fxos8700/Kconfig"
 
 source "drivers/sensor/hdc1008/Kconfig"
 
+source "drivers/sensor/hdc1080/Kconfig"
+
 source "drivers/sensor/hmc5883l/Kconfig"
 
 source "drivers/sensor/hp206c/Kconfig"
