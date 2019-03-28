@@ -87,15 +87,15 @@ static inline bool z_is_idle_thread(void *entry_point)
 
 static inline bool z_is_thread_pending(struct k_thread *thread)
 {
-	return !!(thread->base.thread_state & _THREAD_PENDING);
+	return (thread->base.thread_state & _THREAD_PENDING) != 0;
 }
 
-static inline int z_is_thread_prevented_from_running(struct k_thread *thread)
+static inline bool z_is_thread_prevented_from_running(struct k_thread *thread)
 {
 	u8_t state = thread->base.thread_state;
 
-	return state & (_THREAD_PENDING | _THREAD_PRESTART | _THREAD_DEAD |
-			_THREAD_DUMMY | _THREAD_SUSPENDED);
+	return (state & (_THREAD_PENDING | _THREAD_PRESTART | _THREAD_DEAD |
+			 _THREAD_DUMMY | _THREAD_SUSPENDED)) != 0;
 
 }
 
@@ -117,7 +117,7 @@ static inline bool z_has_thread_started(struct k_thread *thread)
 
 static inline bool z_is_thread_state_set(struct k_thread *thread, u32_t state)
 {
-	return !!(thread->base.thread_state & state);
+	return (thread->base.thread_state & state) != 0;
 }
 
 static inline bool z_is_thread_queued(struct k_thread *thread)
