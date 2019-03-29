@@ -75,7 +75,7 @@ static inline int is_metairq(struct k_thread *thread)
 #if CONFIG_ASSERT
 static inline bool is_thread_dummy(struct k_thread *thread)
 {
-	return (thread->base.thread_state & _THREAD_DUMMY) != 0;
+	return (thread->base.thread_state & _THREAD_DUMMY) != 0U;
 }
 #endif
 
@@ -1032,7 +1032,7 @@ void z_sched_abort(struct k_thread *thread)
 	/* Wait for it to be flagged dead either by the CPU it was
 	 * running on or because we caught it idle in the queue
 	 */
-	while ((thread->base.thread_state & _THREAD_DEAD) == 0) {
+	while ((thread->base.thread_state & _THREAD_DEAD) == 0U) {
 		LOCKED(&sched_spinlock) {
 			if (z_is_thread_queued(thread)) {
 				thread->base.thread_state |= _THREAD_DEAD;

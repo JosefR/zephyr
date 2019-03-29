@@ -42,11 +42,9 @@ from reading their contents.
 import os
 import sys
 import struct
-import parser
 from collections import namedtuple
 import ctypes
 import argparse
-import re
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
@@ -394,7 +392,7 @@ class PageMode_PAE:
                 self.output_offset += struct.calcsize(page_entry_format)
 
     def page_table_create_binary_file(self):
-        for pdpte, pde_info in sorted(self.list_of_pdpte.items()):
+        for _, pde_info in sorted(self.list_of_pdpte.items()):
             for pde, pte_info in sorted(pde_info.pd_entries.items()):
                 pe_info = pte_info.page_entries_info[0]
                 start_addr = pe_info.start_addr & ~0x1FFFFF

@@ -95,7 +95,7 @@ class ArrayType:
         self.offset = offset
 
     def __repr__(self):
-        return "<array of %d, size %d>" % (self.member_type, self.num_members)
+        return "<array of %d>" % self.member_type
 
     def has_kobject(self):
         if self.member_type not in type_env:
@@ -386,7 +386,7 @@ class ElfHelper:
 
         # Step 1: collect all type information.
         for CU in di.iter_CUs():
-            for idx, die in enumerate(CU.iter_DIEs()):
+            for die in CU.iter_DIEs():
                 # Unions are disregarded, kernel objects should never be union
                 # members since the memory is not dedicated to that object and
                 # could be something else
@@ -533,8 +533,8 @@ class ElfHelper:
     def get_symbols(self):
         for section in self.elf.iter_sections():
             if isinstance(section, SymbolTableSection):
-                return {self.sym.name: self.sym.entry.st_value
-                        for self.sym in section.iter_symbols()}
+                return {sym.name: sym.entry.st_value
+                        for sym in section.iter_symbols()}
 
         raise LookupError("Could not find symbol table")
 
