@@ -13,8 +13,11 @@
 
 #define HDC1080_REG_TEMP	0x0
 #define HDC1080_REG_HUMIDITY	0x1
-#define HDC1000_MANUFID         0xFE
-#define HDC1000_DEVICEID        0xFF
+#define HDC1080_REG_MANUFID	0xFE
+#define HDC1080_REG_DEVICEID	0xFF
+
+#define HDC1080_MANUFID		0x5449
+#define HDC1080_DEVICEID	0x1050
 
 struct hdc1080_data {
 	struct device *i2c;
@@ -23,7 +26,4 @@ struct hdc1080_data {
     struct k_timer read_timer;
 };
 
-#define SYS_LOG_DOMAIN "HDC1080"
-#define SYS_LOG_LEVEL CONFIG_SYS_LOG_SENSOR_LEVEL
-#include <logging/sys_log.h>
 #endif

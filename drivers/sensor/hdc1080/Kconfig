@@ -11,23 +11,3 @@ menuconfig HDC1080
 	depends on I2C
 	help
 	  Enable driver for HDC1080 temperature and humidity sensors.
-
-if !HAS_DTS_I2C_DEVICE
-
-config HDC1080_NAME
-	string "Driver name"
-	default "HDC1080"
-	depends on HDC1080
-	help
-	  Device name with which the HDC1080 sensor is identified.
-
-config HDC1080_I2C_MASTER_DEV_NAME
-	string "I2C master where HDC1080 is connected"
-	depends on HDC1080
-	default "I2C_0"
-	help
-	  Specify the device name of the I2C master device to which the
-	  HDC1080 chip is connected.
-
-endif # !HAS_DTS_I2C_DEVICE
-

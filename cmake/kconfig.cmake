@@ -186,9 +186,11 @@ execute_process(
   # The working directory is set to the app dir such that the user
   # can use relative paths in CONF_FILE, e.g. CONF_FILE=nrf5.conf
   RESULT_VARIABLE ret
+  OUTPUT_VARIABLE out
+  ERROR_VARIABLE err
   )
 if(NOT "${ret}" STREQUAL "0")
-  message(FATAL_ERROR "command failed with return code: ${ret}")
+  message(FATAL_ERROR "command failed with return code: ${ret}; \nout:\n${out}\nerr:\n${err}")
 endif()
 
 # Read out the list of 'Kconfig' sources that were used by the engine.
