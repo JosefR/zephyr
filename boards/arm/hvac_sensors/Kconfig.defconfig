@@ -1,0 +1,27 @@
+# Kconfig - HVAC Sensors Board configuration
+#
+# Copyright (c) 2019 Josef Raschen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+if BOARD_HVAC_SENSORS
+
+config BOARD
+	default "hvac_sensors"
+
+if UART_CONSOLE
+
+config UART_1
+	default y
+
+endif # UART_CONSOLE
+
+if I2C
+
+config I2C_2
+    default y
+
+endif # I2C
+
+endif # BOARD_HVAC_SENSORS

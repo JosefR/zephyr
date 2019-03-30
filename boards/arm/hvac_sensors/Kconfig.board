@@ -1,0 +1,10 @@
+# Kconfig - HVAC Sensors board configuration
+#
+# Copyright (c) 2018 Josef Raschen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config BOARD_HVAC_SENSORS
+	bool "HVAC Sensors Board"
+	depends on SOC_STM32F072XB
